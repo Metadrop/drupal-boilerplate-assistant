@@ -1,0 +1,32 @@
+{
+    "name": "metadrop/drupal-boilerplate-assistant",
+    "description": "Assistant to configure a Drupal Boilerplate using Composer.",
+    "type": "composer-plugin",
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "dlopez-akalam",
+            "role": "Developer"
+        },
+        {
+            "name": "rsanzante",
+            "role": "Tech lead"
+        }
+    ],
+    "require": {
+        "composer-plugin-api": "^2.0",
+        "composer/composer": "^2.1.9",
+        "drush/drush": "^11.0|^12.0",
+        "php": ">=7.0.8"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "Metadrop\\DrupalBoilerplateAssistant\\": "src/"
+        }
+    },
+    "extra": {
+        "class": "Metadrop\\DrupalBoilerplateAssistant\\Composer\\ComposerPlugin"
+    }
+}
