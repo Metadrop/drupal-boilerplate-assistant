@@ -136,11 +136,11 @@ class Handler {
   protected function createDirectories() {
     $behat_dir = './web/sites/default/files/behat';
     if (!is_dir($behat_dir)) {
-      mkdir($behat_dir);
+      mkdir($behat_dir, 0755, true);
     }
     $behat_dir_errors = $behat_dir . '/errors';
     if (!is_dir($behat_dir_errors)) {
-      mkdir($behat_dir_errors);
+      mkdir($behat_dir_errors, 0755, true);
     }
   }
 
