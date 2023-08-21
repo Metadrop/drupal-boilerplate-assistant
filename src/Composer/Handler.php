@@ -128,6 +128,7 @@ class Handler {
     $this->createDirectories();
     $this->createSubTheme($theme_name);
     $this->assistantSuccess($project_name);
+    return 0;
   }
 
   /**
