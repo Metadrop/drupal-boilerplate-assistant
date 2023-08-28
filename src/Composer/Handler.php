@@ -227,16 +227,31 @@ class Handler {
   }
 
   /**
-   * Install Drupal with the standard profile.
+   * Install Drupal with a selected profile.
    */
   protected function installDrupal($project_name) {
     if ($this->io->askConfirmation('Do you want to install Drupal? (Y/n) ')) {
+
+      $available_profiles = [
+        'Minimal' ,
+        'Standard',
+        'Umami (demo site)'
+      ];
+
+      $available_profile_machine_names = [
+        'minimal',
+        'standard',
+        'demo_umami'
+      ];
+
+      $selected_profile_index = $this->io->select('What install profile you want to install?', $available_profiles, 'Minimal');
+      $this->io->write('Installing profile ' . $available_profiles[$selected_profile_index]);
       $this->waitDatabase();
       copy('./web/sites/default/example.settings.local.php', './web/sites/default/settings.local.php');
       $drush_yml = file_get_contents('./web/sites/default/example.local.drush.yml');
       $drush_yml = str_replace('example', $project_name, $drush_yml);
       file_put_contents('./web/sites/default/local.drush.yml', $drush_yml);
-      system('docker-compose exec php drush si minimal');
+      system("docker-compose exec php drush si {$available_profile_machine_names[$selected_profile_index]}");
       system('docker-compose exec php drush cr');
     }
   }
