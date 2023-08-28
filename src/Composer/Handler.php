@@ -231,9 +231,7 @@ class Handler {
    */
   protected function installDrupal($project_name) {
     if ($this->io->askConfirmation('Do you want to install Drupal? (Y/n) ')) {
-      // Wait 10 seconds to prevent the database to not be present.
-      $this->io->write("Waiting for database to be ready:");
-      sleep(10);
+      $this->waitDatabase();
       copy('./web/sites/default/example.settings.local.php', './web/sites/default/settings.local.php');
       $drush_yml = file_get_contents('./web/sites/default/example.local.drush.yml');
       $drush_yml = str_replace('example', $project_name, $drush_yml);
@@ -241,6 +239,31 @@ class Handler {
       system('docker-compose exec php drush si minimal');
       system('docker-compose exec php drush cr');
     }
+  }
+
+
+  /**
+   * Waits until the database container is available.
+   *
+   * @throws \Exception
+   *   When the container is not available after timeout expires.
+   */
+  protected function waitDatabase() {
+    $count = 10;
+    while ($count) {
+      $this->io->write('Waiting for database to be ready....');
+      $result = exec('docker-compose ps --services --filter "status=running" | grep mariadb| wc -l');
+
+      if ($result === "1") {
+        $this->io->write('Database ready!');
+        return;
+      }
+
+      sleep(1);
+      $count--;
+    }
+
+    throw new \Exception('Timeout waiting for the database container to be ready');
   }
 
   /**
