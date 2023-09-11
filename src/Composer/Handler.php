@@ -267,13 +267,11 @@ class Handler {
     $count = 10;
     while ($count) {
       $this->io->write('Waiting for database to be ready....');
-      $result = exec('docker-compose ps --services --filter "status=running" | grep mariadb| wc -l');
-
+      $result = exec('. ./.env; docker-compose exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1 AS result"| grep "1 |" | wc -l');
       if ($result === "1") {
         $this->io->write('Database ready!');
         return;
       }
-
       sleep(1);
       $count--;
     }
