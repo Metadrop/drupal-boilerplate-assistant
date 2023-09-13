@@ -276,7 +276,8 @@ class Handler {
       $count--;
     }
 
-    throw new \Exception('Timeout waiting for the database container to be ready');
+    // Let's hope the detection process failed.
+    $this->io->write("Could not detect if database is ready, trying to continue hoping it is ready");
   }
 
   /**
