@@ -54,6 +54,13 @@ class Handler {
   protected $initializeGit;
 
   /**
+   * Command to use to call the docker compose plugin.
+   *
+   * When it is V1 it thould be "docker-compose", for V2 is "docker compose".
+   */
+  protected $dockerComposeCmd;
+
+  /**
    * Handler constructor.
    *
    * @param \Composer\Composer $composer
@@ -118,9 +125,10 @@ class Handler {
    * Assistant on create project.
    */
   public function createProjectAssistant() {
-    $this->io->write('Launching assistant to configure the Drupal Boilerplate');
+    $this->io->write('Launching assistant to configure the Drupal Boilerplate with COMPOSE V2');
     $project_name = $this->setConfFiles();
     $theme_name = str_replace('-', '_', $project_name);
+    $this->setupDockerComposeCmd();
     $this->setUpGit();
     $this->startDocker($theme_name);
     $this->initGrumPhp();
@@ -129,6 +137,26 @@ class Handler {
     $this->createSubTheme($theme_name);
     $this->assistantSuccess($project_name);
     return 0;
+  }
+
+  /**
+   * Determines the command to run docker compose plugin.
+   */
+  protected function setupDockerComposeCmd() {
+
+    $dotenv = \Dotenv\Dotenv::createImmutable(".");
+    $dotenv->load();
+    $this->dockerComposeCmd = $_ENV["DOCKER_COMPOSE_CMD"];
+    $this->io->write('Using ' . $this->dockerComposeCmd . ' to run Docker Compose commands');
+  }
+
+  /**
+   * Runs a docker compose command.
+   *
+   * It makes sure the proper docker command is used.
+   */
+  protected function runDockerComposeCmd(string $args) {
+    system($this->dockerComposeCmd . " " . $args);
   }
 
   /**
@@ -211,25 +239,25 @@ class Handler {
   /**
    * Start docker.
    */
-  protected function startDocker($theme_name) {
+  protected function startDocker(string $theme_name) {
     system('./scripts/setup-traefik-port.sh');
-    system('docker-compose up -d php');
+    $this->runDockerComposeCmd('up -d php');
     $theme_path = '/var/www/html/web/themes/custom/' . $theme_name;
-    system('docker-compose exec php mkdir -p ' . $theme_path);
-    system('docker-compose up -d');
+    $this->runDockerComposeCmd('exec php mkdir -p ' . $theme_path);
+    $this->runDockerComposeCmd('up -d');
   }
 
   /**
    * Enable grumphp.
    */
   protected function initGrumPhp() {
-    system('docker-compose exec php ./vendor/bin/grumphp git:init');
+    $this->runDockerComposeCmd('exec php ./vendor/bin/grumphp git:init');
   }
 
   /**
    * Install Drupal with a selected profile.
    */
-  protected function installDrupal($project_name) {
+  protected function installDrupal(string $project_name) {
     if ($this->io->askConfirmation('Do you want to install Drupal? (Y/n) ')) {
 
       $available_profiles = [
@@ -251,8 +279,8 @@ class Handler {
       $drush_yml = file_get_contents('./web/sites/default/example.local.drush.yml');
       $drush_yml = str_replace('example', $project_name, $drush_yml);
       file_put_contents('./web/sites/default/local.drush.yml', $drush_yml);
-      system("docker-compose exec php drush si {$available_profile_machine_names[$selected_profile_index]}");
-      system('docker-compose exec php drush cr');
+      $this->runDockerComposeCmd("php drush si {$available_profile_machine_names[$selected_profile_index]}");
+      $this->runDockerComposeCmd('php drush cr');
     }
   }
 
@@ -267,7 +295,7 @@ class Handler {
     $count = 10;
     while ($count) {
       $this->io->write('Waiting for database to be ready....');
-      $result = exec('. ./.env; docker-compose exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1 AS result"| grep "1 |" | wc -l');
+      $result = exec('. ./.env; ' . $this->dockerComposeCmd . ' exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1 AS result"| grep "1 |" | wc -l');
       if ($result === "1") {
         $this->io->write('Database ready!');
         return;
@@ -285,11 +313,11 @@ class Handler {
    */
   protected function createSubTheme(string $theme_name) {
     if ($this->io->askConfirmation('Do you want to create a Radix sub-theme? (Y/n) ')) {
-      system('docker-compose exec php drush en components');
-      system('docker-compose exec php drush theme:enable radix -y');
-      system('docker-compose exec php drush --include="web/themes/contrib/radix" radix:create ' . $theme_name);
-      system('docker-compose exec php drush theme:enable ' . $theme_name . ' -y');
-      system('docker-compose exec php drush config-set system.theme default ' . $theme_name . ' -y');
+      $this->runDockerComposeCmd('exec php drush en components');
+      $this->runDockerComposeCmd('exec php drush theme:enable radix -y');
+      $this->runDockerComposeCmd('exec php drush --include="web/themes/contrib/radix" radix:create ' . $theme_name);
+      $this->runDockerComposeCmd('exec php drush theme:enable ' . $theme_name . ' -y');
+      $this->runDockerComposeCmd('exec php drush config-set system.theme default ' . $theme_name . ' -y');
       system('make frontend dev');
     }
   }
@@ -297,8 +325,8 @@ class Handler {
   /**
    * Assistant success message.
    */
-  protected function assistantSuccess($project_name) {
-    $port = shell_exec('docker-compose port traefik 80 | cut -d: -f2');
+  protected function assistantSuccess(string $project_name) {
+    $port = shell_exec($this->dockerComposeCmd . ' port traefik 80 | cut -d: -f2');
 
     if ($this->initializeGit) {
         system('git add .');
@@ -311,7 +339,7 @@ class Handler {
       . "\nYour new project is up and running on the following url: http://$project_name.docker.localhost:$port"
       . "\nRun `make info` for more URLs to other provided tools\n");
     $this->io->write('Click on the following link to start building your site:');
-    system('docker-compose exec php drush uli');
+    $this->runDockerComposeCmd('exec php drush uli');
     $this->io->write("\n");
   }
 }
