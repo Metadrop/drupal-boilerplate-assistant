@@ -174,6 +174,29 @@ class Handler {
   }
 
   /**
+   * Replaces the string $needle in the file $path with $replacement.
+   */
+  protected function replaceInFile($path, $needle, $replacement) {
+    $content = file_get_contents($path);
+    $replaced_content = str_replace($needle, $replacement, $content);
+    file_put_contents($path, $replaced_content);
+  }
+
+  /**
+   * Copies an example file to the final file and replaces strings inside.
+   *
+   * Some important required files are provided with examples. To use them,
+   * they need to be copied to a file withthe required name and replace the
+   * example values with the final values. This function takes an example file,
+   * with path $path . $suffix, copies it to $path and replaces inside that copy
+   * the string $needle with $replacement.
+   */
+  protected function processExampleFile($path, $suffix, $needle, $replacement) {
+    copy($path . $suffix, $path);
+    $this->replaceInFile($path, $needle, $replacement);
+  }
+
+  /**
    * Helper method to setup several configuration files.
    */
   protected function setConfFiles() {
@@ -183,29 +206,19 @@ class Handler {
 
 
     $this->io->write('Setting up .env file');
-    $env = file_get_contents(self::ENV_FILE . '.example');
-    $env = str_replace('example', $project_name, $env);
-    file_put_contents(self::ENV_FILE, $env);
-
-    $makefile = file_get_contents(self::MAKE_FILE);
-    $makefile = str_replace('frontend_target ?= "example"', 'frontend_target ?= "' . $theme_name . '"', $makefile);
-    file_put_contents(self::MAKE_FILE, $makefile);
+    $this->processExampleFile(self::ENV_FILE, '_example', 'example', $project_name);
+    $this->replaceInFile(self::MAKE_FILE, 'frontend_target ?= "example"', 'frontend_target ?= "' . $theme_name . '"');
 
     $this->io->write('Setting up Drush aliases file');
-    $source_filename = self::DRUSH_ALIASES_FOLDER . "/sitename" . self::DRUSH_ALIASES_FILE_SUFFIX . ".example";
-    $aliases = file_get_contents($source_filename);
-    $aliases = str_replace('sitename', $project_name, $aliases);
-    file_put_contents(self::DRUSH_ALIASES_FOLDER . "/$project_name" . self::DRUSH_ALIASES_FILE_SUFFIX, $aliases);
+    $source_filename = self::DRUSH_ALIASES_FOLDER . '/sitename' . self::DRUSH_ALIASES_FILE_SUFFIX;
+    $this->processExampleFile($source_filename,  '.example', 'sitename', $project_name);
 
     $this->io->write('Setting up behat.yml file');
-    $behat_yml = file_get_contents('./behat.yml');
-    $behat_yml = str_replace('example', $project_name, $behat_yml);
-    file_put_contents('./behat.yml', $behat_yml);
+    $this->replaceInFile('./behat.yml', 'example', $project_name);
+
 
     $this->io->write('Setting up BackstopJS\' cookies.json file');
-    $backstop = file_get_contents('./tests/functional/backstopjs/backstop_data/engine_scripts/cookies.json');
-    $backstop = str_replace('example', $project_name, $backstop);
-    file_put_contents('./tests/functional/backstopjs/backstop_data/engine_scripts/cookies.json', $backstop);
+    $this->replaceInFile('./tests/functional/backstopjs/backstop_data/engine_scripts/cookies.json', 'example', $project_name);
 
     $this->io->write('Setting up docker-compose.override.yml');
     copy('./docker-compose.override.yml.dist', './docker-compose.override.yml');
