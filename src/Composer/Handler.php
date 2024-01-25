@@ -307,7 +307,7 @@ class Handler {
     $count = 10;
     while ($count) {
       $this->io->write('Waiting for database to be ready....');
-      $result = exec('. ./.env; ' . $this->dockerComposeCmd . ' exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1 AS result"| grep "1 |" | wc -l');
+      $result = trim(shell_exec('. ./.env; ' . $this->dockerComposeCmd . ' exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1234567890 AS result"| grep "1234567890" | wc -l'));
       if ($result === "1") {
         $this->io->write('Database ready!');
         return;
