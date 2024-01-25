@@ -144,9 +144,7 @@ class Handler {
    */
   protected function setupDockerComposeCmd() {
 
-    $dotenv = \Dotenv\Dotenv::createImmutable(".");
-    $dotenv->load();
-    $this->dockerComposeCmd = $_ENV["DOCKER_COMPOSE_CMD"];
+    $this->dockerComposeCmd = trim(shell_exec("grep ^DOCKER_COMPOSE_CMD= .env.example | cut -f2 -d="));
     $this->io->write('Using ' . $this->dockerComposeCmd . ' to run Docker Compose commands');
   }
 
