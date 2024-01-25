@@ -210,8 +210,10 @@ class Handler {
     $this->replaceInFile(self::MAKE_FILE, 'frontend_target ?= "example"', 'frontend_target ?= "' . $theme_name . '"');
 
     $this->io->write('Setting up Drush aliases file');
-    $source_filename = self::DRUSH_ALIASES_FOLDER . '/sitename' . self::DRUSH_ALIASES_FILE_SUFFIX;
-    $this->processExampleFile($source_filename,  '.example', 'sitename', $project_name);
+    $drush_site_aliases = self::DRUSH_ALIASES_FOLDER . '/sitename' . self::DRUSH_ALIASES_FILE_SUFFIX;
+    $drush_local_alias = self::DRUSH_ALIASES_FOLDER . '/default' . self::DRUSH_ALIASES_FILE_SUFFIX;
+    $this->processExampleFile($drush_site_aliases,  '.example', 'sitename', $project_name);
+    $this->replaceInFile($drush_local_alias, 'example', $project_name);
 
     $this->io->write('Setting up behat.yml file');
     $this->replaceInFile('./behat.yml', 'example', $project_name);
