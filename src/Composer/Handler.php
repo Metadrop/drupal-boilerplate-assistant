@@ -291,8 +291,8 @@ class Handler {
       $drush_yml = file_get_contents('./web/sites/default/example.local.drush.yml');
       $drush_yml = str_replace('example', $project_name, $drush_yml);
       file_put_contents('./web/sites/default/local.drush.yml', $drush_yml);
-      $this->runDockerComposeCmd("php drush si {$available_profile_machine_names[$selected_profile_index]}");
-      $this->runDockerComposeCmd('php drush cr');
+      $this->runDockerComposeCmd("exec php drush si {$available_profile_machine_names[$selected_profile_index]}");
+      $this->runDockerComposeCmd('exec php drush cr');
     }
   }
 
