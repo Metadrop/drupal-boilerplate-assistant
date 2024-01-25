@@ -125,7 +125,7 @@ class Handler {
    * Assistant on create project.
    */
   public function createProjectAssistant() {
-    $this->io->write('Launching assistant to configure the Drupal Boilerplate with COMPOSE V2');
+    $this->io->write('Launching assistant to configure the Drupal Boilerplate');
     $project_name = $this->setConfFiles();
     $theme_name = str_replace('-', '_', $project_name);
     $this->setupDockerComposeCmd();
