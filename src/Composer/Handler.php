@@ -202,8 +202,7 @@ class Handler {
   protected function setConfFiles() {
     $current_dir = basename(getcwd());
     $project_name = $this->io->ask('Please enter the project name (default to ' . $current_dir . '): ', $current_dir);
-    $theme_name = str_replace('-', '_', $project_name);
-
+    $theme_name = str_replace('-', '_', $project_name) . '_radix';
 
     $this->io->write('Setting up .env file');
     $this->processExampleFile(self::ENV_FILE, '_example', 'example', $project_name);
