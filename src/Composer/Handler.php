@@ -205,7 +205,7 @@ class Handler {
     $theme_name = str_replace('-', '_', $project_name) . '_radix';
 
     $this->io->write('Setting up .env file');
-    $this->processExampleFile(self::ENV_FILE, '_example', 'example', $project_name);
+    $this->processExampleFile(self::ENV_FILE, '.example', 'example', $project_name);
     $this->replaceInFile(self::MAKE_FILE, 'frontend_target ?= "example"', 'frontend_target ?= "' . $theme_name . '"');
 
     $this->io->write('Setting up Drush aliases file');
