@@ -56,7 +56,7 @@ class Handler {
   /**
    * Command to use to call the docker compose plugin.
    *
-   * When it is V1 it thould be "docker-compose", for V2 is "docker compose".
+   * When it is V1 it thould be "compose", for V2 is "docker compose".
    */
   protected $dockerComposeCmd;
 
@@ -219,8 +219,8 @@ class Handler {
     $this->io->write('Setting up BackstopJS\' cookies.json file');
     $this->replaceInFile('./tests/functional/backstopjs/backstop_data/engine_scripts/cookies.json', 'example', $project_name);
 
-    $this->io->write('Setting up docker-compose.override.yml');
-    copy('./docker-compose.override.yml.dist', './docker-compose.override.yml');
+    $this->io->write('Setting up compose.override.yml');
+    copy('./compose.override.yml.dist', './compose.override.yml');
 
     $this->io->write('Setting up phpunit.xml');
     copy('./phpunit.xml.dist', './phpunit.xml');
