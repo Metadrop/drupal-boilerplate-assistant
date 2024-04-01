@@ -54,13 +54,6 @@ class Handler {
   protected $initializeGit;
 
   /**
-   * Command to use to call the docker compose plugin.
-   *
-   * When it is V1 it thould be "docker-compose", for V2 is "docker compose".
-   */
-  protected $dockerComposeCmd;
-
-  /**
    * Handler constructor.
    *
    * @param \Composer\Composer $composer
@@ -128,7 +121,6 @@ class Handler {
     $this->io->write('Launching assistant to configure the Drupal Boilerplate');
     $project_name = $this->setConfFiles();
     $theme_name = str_replace('-', '_', $project_name);
-    $this->setupDockerComposeCmd();
     $this->setUpGit();
     $this->startDocker($theme_name);
     $this->initGrumPhp();
@@ -140,21 +132,12 @@ class Handler {
   }
 
   /**
-   * Determines the command to run docker compose plugin.
-   */
-  protected function setupDockerComposeCmd() {
-
-    $this->dockerComposeCmd = trim(shell_exec("grep ^DOCKER_COMPOSE_CMD= .env.example | cut -f2 -d="));
-    $this->io->write('Using ' . $this->dockerComposeCmd . ' to run Docker Compose commands');
-  }
-
-  /**
    * Runs a docker compose command.
    *
    * It makes sure the proper docker command is used.
    */
   protected function runDockerComposeCmd(string $args) {
-    system($this->dockerComposeCmd . " " . $args);
+    system('docker compose ' . $args);
   }
 
   /**
@@ -307,7 +290,7 @@ class Handler {
     $count = 10;
     while ($count) {
       $this->io->write('Waiting for database to be ready....');
-      $result = trim(shell_exec('. ./.env; ' . $this->dockerComposeCmd . ' exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1234567890 AS result"| grep "1234567890" | wc -l'));
+      $result = trim(shell_exec('. ./.env; docker compose exec -u root mariadb mysql -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -e "SELECT 1234567890 AS result"| grep "1234567890" | wc -l'));
       if ($result === "1") {
         $this->io->write('Database ready!');
         return;
@@ -338,7 +321,7 @@ class Handler {
    * Assistant success message.
    */
   protected function assistantSuccess(string $project_name) {
-    $port = shell_exec($this->dockerComposeCmd . ' port traefik 80 | cut -d: -f2');
+    $port = shell_exec('docker compose port traefik 80 | cut -d: -f2');
 
     if ($this->initializeGit) {
         system('git add .');
