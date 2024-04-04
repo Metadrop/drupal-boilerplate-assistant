@@ -54,6 +54,20 @@ class Handler {
   protected $initializeGit;
 
   /**
+   * Project name entered by the user,
+   *
+   * @var string
+   */
+  protected $project_name;
+
+  /**
+   * If user wants a Radix subtheme this variable holds its name.
+   *
+   * @var string
+   */
+  protected $theme_name;
+
+  /**
    * Handler constructor.
    *
    * @param \Composer\Composer $composer
@@ -119,15 +133,14 @@ class Handler {
    */
   public function createProjectAssistant() {
     $this->io->write('Launching assistant to configure the Drupal Boilerplate');
-    $project_name = $this->setConfFiles();
-    $theme_name = str_replace('-', '_', $project_name);
+    $this->setConfFiles();
     $this->setUpGit();
-    $this->startDocker($theme_name);
+    $this->startDocker();
     $this->initGrumPhp();
-    $this->installDrupal($project_name);
+    $this->installDrupal();
     $this->createDirectories();
-    $this->createSubTheme($theme_name);
-    $this->assistantSuccess($project_name);
+    $this->createSubTheme();
+    $this->assistantSuccess();
     return 0;
   }
 
@@ -167,14 +180,17 @@ class Handler {
    * Copies an example file to the final file and replaces strings inside.
    *
    * Some important required files are provided with examples. To use them,
-   * they need to be copied to a file withthe required name and replace the
+   * they need to be copied to a file with the required name and replace the
    * example values with the final values. This function takes an example file,
-   * with path $path . $suffix, copies it to $path and replaces inside that copy
-   * the string $needle with $replacement.
+   * with path $path . $suffix, copies it to $path and makes the replacements
+   * required (each replacements is pair key => value where key is the needle
+   * and the value is the replacement.
    */
-  protected function processExampleFile($path, $suffix, $needle, $replacement) {
+  protected function processExampleFile($path, $suffix, $replacements) {
     copy($path . $suffix, $path);
-    $this->replaceInFile($path, $needle, $replacement);
+    foreach($replacements as $needle => $replacement) {
+      $this->replaceInFile($path, $needle, $replacement);
+    }
   }
 
   /**
@@ -182,25 +198,29 @@ class Handler {
    */
   protected function setConfFiles() {
     $current_dir = basename(getcwd());
-    $project_name = $this->io->ask('Please enter the project name (default to ' . $current_dir . '): ', $current_dir);
-    $theme_name = str_replace('-', '_', $project_name) . '_radix';
+    $this->project_name = $this->io->ask('Please enter the project name (default to ' . $current_dir . '): ', $current_dir);
+    $this->theme_name = str_replace('-', '_', $this->project_name) . '_radix';
 
     $this->io->write('Setting up .env file');
-    $this->processExampleFile(self::ENV_FILE, '.example', 'example', $project_name);
-    $this->replaceInFile(self::MAKE_FILE, 'frontend_target ?= "example"', 'frontend_target ?= "' . $theme_name . '"');
+    $env_replacements =  [
+      'example_radix' => $this->theme_name,
+      'example' => $this->project_name
+    ];
+    $this->processExampleFile(self::ENV_FILE, '.example', $env_replacements);
+    $this->replaceInFile(self::MAKE_FILE, 'frontend_target ?= "example"', 'frontend_target ?= "' . $this->theme_name . '"');
 
     $this->io->write('Setting up Drush aliases file');
     $drush_site_aliases = self::DRUSH_ALIASES_FOLDER . '/sitename' . self::DRUSH_ALIASES_FILE_SUFFIX;
     $drush_local_alias = self::DRUSH_ALIASES_FOLDER . '/default' . self::DRUSH_ALIASES_FILE_SUFFIX;
-    $this->processExampleFile($drush_site_aliases,  '.example', 'sitename', $project_name);
-    $this->replaceInFile($drush_local_alias, 'example', $project_name);
+    $this->processExampleFile($drush_site_aliases,  '.example', ['sitename' => $this->project_name]);
+    $this->replaceInFile($drush_local_alias, 'example', $this->project_name);
 
     $this->io->write('Setting up behat.yml file');
-    $this->replaceInFile('./behat.yml', 'example', $project_name);
+    $this->replaceInFile('./behat.yml', 'example', $this->project_name);
 
 
     $this->io->write('Setting up BackstopJS\' cookies.json file');
-    $this->replaceInFile('./tests/functional/backstopjs/backstop_data/engine_scripts/cookies.json', 'example', $project_name);
+    $this->replaceInFile('./tests/functional/backstopjs/backstop_data/engine_scripts/cookies.json', 'example', $this->project_name);
 
     $this->io->write('Setting up compose.override.yml');
     copy('./compose.override.yml.dist', './compose.override.yml');
@@ -213,9 +233,6 @@ class Handler {
 
     $this->io->write('Setting up phpmd.xml');
     copy('./phpmd.xml.dist', './phpmd.xml');
-
-
-    return $project_name;
   }
 
   /**
@@ -234,10 +251,10 @@ class Handler {
   /**
    * Start docker.
    */
-  protected function startDocker(string $theme_name) {
+  protected function startDocker() {
     system('./scripts/setup-traefik-port.sh');
     $this->runDockerComposeCmd('up -d php');
-    $theme_path = '/var/www/html/web/themes/custom/' . $theme_name;
+    $theme_path = '/var/www/html/web/themes/custom/' . $this->theme_name;
     $this->runDockerComposeCmd('exec php mkdir -p ' . $theme_path);
     $this->runDockerComposeCmd('up -d');
   }
@@ -252,7 +269,7 @@ class Handler {
   /**
    * Install Drupal with a selected profile.
    */
-  protected function installDrupal(string $project_name) {
+  protected function installDrupal() {
     if ($this->io->askConfirmation('Do you want to install Drupal? (Y/n) ')) {
 
       $available_profiles = [
@@ -272,7 +289,7 @@ class Handler {
       $this->waitDatabase();
       copy('./web/sites/default/example.settings.local.php', './web/sites/default/settings.local.php');
       $drush_yml = file_get_contents('./web/sites/default/example.local.drush.yml');
-      $drush_yml = str_replace('example', $project_name, $drush_yml);
+      $drush_yml = str_replace('example', $this->project_name, $drush_yml);
       file_put_contents('./web/sites/default/local.drush.yml', $drush_yml);
       $this->runDockerComposeCmd("exec php drush -y si {$available_profile_machine_names[$selected_profile_index]}");
       $this->runDockerComposeCmd('exec php drush cr');
@@ -306,13 +323,13 @@ class Handler {
   /**
    * Create new sub-theme.
    */
-  protected function createSubTheme(string $theme_name) {
+  protected function createSubTheme() {
     if ($this->io->askConfirmation('Do you want to create a Radix sub-theme? (Y/n) ')) {
       $this->runDockerComposeCmd('exec php drush en components');
       $this->runDockerComposeCmd('exec php drush theme:enable radix -y');
-      $this->runDockerComposeCmd('exec php drush --include="web/themes/contrib/radix" radix:create ' . $theme_name);
-      $this->runDockerComposeCmd('exec php drush theme:enable ' . $theme_name . ' -y');
-      $this->runDockerComposeCmd('exec php drush config-set system.theme default ' . $theme_name . ' -y');
+      $this->runDockerComposeCmd('exec php drush --include="web/themes/contrib/radix" radix:create ' . $this->theme_name);
+      $this->runDockerComposeCmd('exec php drush theme:enable ' . $this->theme_name . ' -y');
+      $this->runDockerComposeCmd('exec php drush config-set system.theme default ' . $this->theme_name . ' -y');
       system('make frontend dev');
     }
   }
@@ -320,7 +337,7 @@ class Handler {
   /**
    * Assistant success message.
    */
-  protected function assistantSuccess(string $project_name) {
+  protected function assistantSuccess() {
     $port = shell_exec('docker compose port traefik 80 | cut -d: -f2');
 
     if ($this->initializeGit) {
@@ -331,7 +348,7 @@ class Handler {
     $this->io->write("\n\n" . '***********************'
       . "\n    CONGRATULATIONS!"
       . "\n***********************"
-      . "\nYour new project is up and running on the following url: http://$project_name.docker.localhost:$port"
+      . "\nYour new project is up and running on the following url: http://{$this->project_name}.docker.localhost:$port"
       . "\nRun `make info` for more URLs to other provided tools\n");
     $this->io->write('Click on the following link to start building your site:');
     $this->runDockerComposeCmd('exec php drush uli');
